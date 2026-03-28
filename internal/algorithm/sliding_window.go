@@ -1,3 +1,5 @@
+// These have no Redis dependency and exist to make the logic unit-testable in isolation.
+// Production traffic goes through the Lua scripts in scripts/lua/ which run atomically on Redis.
 package algorithm
 
 import (
@@ -5,6 +7,8 @@ import (
 	"time"
 )
 
+// SlidingWindow is an in-memory sliding window counter.
+// Not safe for distributed use — use the Redis Lua implementation for multi-replica deployments.
 type SlidingWindow struct {
 	mu	   	 sync.Mutex
 	requests []time.Time
@@ -23,6 +27,7 @@ func (sw: *SlidingWindow) Allow() bool {
 	now := time.Now()
 	cutoff := now.Add(-sw.window)
 
+	// Evict expired entries
 	valid := sw.requests[:0]
 	for _, t := range sw.requests {
 		if t.After(cutoff) {
