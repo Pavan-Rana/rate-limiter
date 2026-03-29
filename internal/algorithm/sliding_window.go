@@ -16,11 +16,11 @@ type SlidingWindow struct {
 	window 	 time.Duration
 }
 
-func NewSlidingWindoe(limit int, window time.Duration) *SlidingWindow {
+func NewSlidingWindow(limit int, window time.Duration) *SlidingWindow {
 	return &SlidingWindow{limit: limit, window: window}
 }
 
-func (sw: *SlidingWindow) Allow() bool {
+func (sw *SlidingWindow) Allow() bool {
 	sw.mu.Lock()
 	defer sw.mu.Unlock()
 

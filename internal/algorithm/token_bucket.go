@@ -11,15 +11,15 @@ type TokenBucket struct {
 	tokens		 float64
 	capacity	 float64
 	rate		 float64 // tokens per second
-	lastFillTime time.Time
+	lastFill 	 time.Time
 }
 
-func NewTokenBucet(capacity float64, ratePerSec float64) *TokenBucket {
+func NewTokenBucket(capacity float64, ratePerSec float64) *TokenBucket {
 	return &TokenBucket{
 		tokens:		 capacity,
 		capacity:	 capacity,
 		rate:		 ratePerSec,
-		lastFillTime: time.Now(),
+		lastFill: time.Now(),
 	}
 }
 
@@ -28,7 +28,7 @@ func (tb *TokenBucket) Allow() bool {
 	defer tb.mu.Unlock()
 
 	now := time.Now()
-	elapsed := now.Sub(tb.lastFillTime).Seconds()
+	elapsed := now.Sub(tb.lastFill).Seconds()
 	tb.tokens = minF(tb.capacity, tb.tokens+elapsed*tb.rate)
 	tb.lastFill = now
 
