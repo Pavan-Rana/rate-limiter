@@ -14,7 +14,7 @@ type Store interface {
 }
 
 type Config interface {
-	PolicyFor(apiKey string) (Policy, error)
+	PolicyFor(apiKey string) (Policy, bool)
 	GetDefault() Policy
 }
 

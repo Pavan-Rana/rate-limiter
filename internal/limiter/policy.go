@@ -9,6 +9,6 @@ type Policy struct {
 }
 
 var DefaultPolicy = Policy{
-	Limit: 100,
-	Window: time.Minute
+	Limit: 	100,
+	Window: time.Minute,
 }
