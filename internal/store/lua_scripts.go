@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	_ "embed"
-	"os"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -15,24 +14,22 @@ type LuaScripts struct {
 	TokenBucketSHA   string
 }
 
+//go:embed scripts/lua/sliding_window.lua
+var slidingWindowLua []byte
+
+//go:embed scripts/lua/token_bucket.lua
+var tokenBucketLua []byte
+
 // LoadScripts pre-loads Lua scripts into Redis at startup.
 // Subsequent calls use EVALSHA with the digest - faster and avoids redundant parsing.
 func LoadScripts(ctx context.Context, client *redis.Client) (*LuaScripts, error) {
-	sw, err := os.ReadFile("../../scripts/lua/sliding_window.lua")
-	if err != nil {
-		return nil, err
-	}
-	tb, err := os.ReadFile("../../scripts/lua/token_bucket.lua")
+
+	swSHA, err := client.ScriptLoad(ctx, string(slidingWindowLua)).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	swSHA, err := client.ScriptLoad(ctx, string(sw)).Result()
-	if err != nil {
-		return nil, err
-	}
-
-	tbSHA, err := client.ScriptLoad(ctx, string(tb)).Result()
+	tbSHA, err := client.ScriptLoad(ctx, string(tokenBucketLua)).Result()
 	if err != nil {
 		return nil, err
 	}
