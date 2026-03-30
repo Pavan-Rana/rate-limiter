@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
+	"github.com/Pavan-Rana/rate-limiter/internal/limiter"
 	"github.com/redis/go-redis/v9"
-	"github.com/Pavan-Rana/redis-rate-limiter/internal/limiter"
 )
 
 type RedisStore struct {
-	client    	*redis.Client
-	scripts		*LuaScripts
+	client  *redis.Client
+	scripts *LuaScripts
 }
 
 func NewRedisStore(addr string) (*RedisStore, error) {
@@ -36,7 +36,7 @@ func (r *RedisStore) AllowRequest(ctx context.Context, key string, policy limite
 	windowMs := policy.Window.Milliseconds()
 
 	result, err := r.client.EvalSha(ctx, r.scripts.SlidingWindowSHA, []string{key},
-		nowMs, windowMs, policy.Limit
+		nowMs, windowMs, policy.Limit,
 	).Int()
 
 	if err != nil {

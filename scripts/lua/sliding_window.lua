@@ -39,9 +39,9 @@ if count < limit then
     local member = tostring(now) .. '-' .. tostring(redis.call('INCR', key .. ':seq'))
     redis.call('ZADD', key, now, member)
 
-    redis.call('PEXPIRE', key, window_ms + 1000)
+    redis.call('PEXPIRE', key, window_ms)
 
     return 1
-else:
+else
     return 0
 end
