@@ -1,38 +1,42 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
-	"net/http"
+	stdhttp "net/http"
 
-	"github.com/Pavan-Rana/rate-limiter/internal/limiter"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func NewRouter(lim *limiter.Limiter) http.Handler {
-	mux := http.NewServeMux()
+type Limiter interface {
+	AllowRequest(ctx context.Context, apiKey string) (bool, error)
+}
+
+func NewRouter(lim Limiter) stdhttp.Handler {
+	mux := stdhttp.NewServeMux()
 	mux.HandleFunc("/check", checkHandler(lim))
 	mux.Handle("/metrics", promhttp.Handler())
 	return mux
 }
 
-func checkHandler(lim *limiter.Limiter) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+func checkHandler(lim Limiter) stdhttp.HandlerFunc {
+	return func(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+		if r.Method != stdhttp.MethodPost {
+			stdhttp.Error(w, "Method not allowed", stdhttp.StatusMethodNotAllowed)
 			return
 		}
 
 		apiKey := r.Header.Get("X-API-Key")
 		if apiKey == "" {
-			http.Error(w, "Missing X-API-Key", http.StatusBadRequest)
+			stdhttp.Error(w, "Missing X-API-Key", stdhttp.StatusBadRequest)
 			return
 		}
 
 		allowed, _ := lim.AllowRequest(r.Context(), apiKey)
 
-		status := http.StatusOK
+		status := stdhttp.StatusOK
 		if !allowed {
-			status = http.StatusTooManyRequests
+			status = stdhttp.StatusTooManyRequests
 		}
 
 		w.Header().Set("Content-Type", "application/json")
