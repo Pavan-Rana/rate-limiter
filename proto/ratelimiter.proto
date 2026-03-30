@@ -1,1 +1,20 @@
-// proto/ratelimiter.proto
+syntax = "proto3";
+
+package ratelimiter.v1;
+
+option go_package = "github.com/Pavan-Rana/rate-limiter/proto";
+
+service RateLimiter {
+    // Makes an atomic rate-limit decision for given API key
+    rpc AllowRequest(AllowRequestMessage) returns (AllowResponse);
+}
+
+message AllowRequestMessage {
+    string api_key = 1;
+}
+
+message AllowResponse {
+    bool    allowed = 1;
+    // "allowed" | "rate limit exceeded" | "fail-open: <err>"
+    string  reason = 2;
+}
