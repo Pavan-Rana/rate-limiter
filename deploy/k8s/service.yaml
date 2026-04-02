@@ -1,1 +1,15 @@
-// deploy/k8s/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: rate-limiter
+spec:
+  selector:
+    app: rate-limiter
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+    - name: http
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP

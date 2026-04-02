@@ -1,1 +1,12 @@
-// deploy/k8s/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rate-limiter-config
+data:
+  # Default policy: 100 requests per minute
+  DEFAULT_LIMIT: "100"
+  DEFAULT_WINDOW: "60s"
+
+  # Example per-key overrides (extend in application config as needed)
+  # POLICY_premium-key-001: "1000/60s"
+  # POLICY_free-tier-key:   "10/60s"

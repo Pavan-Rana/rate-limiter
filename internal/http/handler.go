@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	stdhttp "net/http"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Limiter interface {
@@ -27,7 +29,7 @@ func NewRouter(lim Limiter) stdhttp.Handler {
 		ctx, cancel := context.WithTimeout(r.Context(), 50*time.Millisecond)
 		defer cancel()
 
-		// ✅ Read from header, matching what k6 sends
+		// Read from header, matching what k6 sends
 		apiKey := r.Header.Get("X-API-Key")
 		if apiKey == "" {
 			stdhttp.Error(w, "Missing X-API-Key", stdhttp.StatusBadRequest)
@@ -51,6 +53,8 @@ func NewRouter(lim Limiter) stdhttp.Handler {
 			"api_key": apiKey,
 		})
 	})
+
+	mux.Handle("/metrics", promhttp.Handler())
 
 	return mux
 }

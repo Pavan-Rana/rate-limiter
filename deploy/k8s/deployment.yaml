@@ -1,1 +1,63 @@
-// deploy/k8s/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rate-limiter
+  labels:
+    app: rate-limiter
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: rate-limiter
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1   # at most 1 pod down during rollout
+      maxSurge: 1         # at most 1 extra pod during rollout
+  template:
+    metadata:
+      labels:
+        app: rate-limiter
+      annotations:
+        # Prometheus scrape annotations — picked up by kube-prometheus-stack
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: rate-limiter
+          image: rate-limiter:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: grpc
+              containerPort: 50051
+            - name: http
+              containerPort: 8080
+          env:
+            - name: REDIS_ADDR
+              value: "redis:6379"
+            - name: GRPC_ADDR
+              value: ":50051"
+            - name: HTTP_ADDR
+              value: ":8080"
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "128Mi"

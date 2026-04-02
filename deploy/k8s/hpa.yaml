@@ -1,1 +1,28 @@
-// deploy/k8s/hpa.yaml
+# Horizontal Pod Autoscaler
+#
+# Scales replicas between 3 and 10 based on CPU utilisation.
+# Safe to scale horizontally because:
+#   - service replicas are stateless (no in-process rate-limit state)
+#   - all decisions are serialised through Redis (shared source of truth)
+# See docs/tradeoffs.md — "Stateless replicas" section.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rate-limiter-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: rate-limiter
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 60  # avoid flapping on short traffic spikes
