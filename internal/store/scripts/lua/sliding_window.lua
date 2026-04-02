@@ -38,8 +38,8 @@ if count < limit then
     -- Appending a microsecond-precision suffix handles bursts at identical millisecond timestamps.
     local member = tostring(now) .. '-' .. tostring(redis.call('INCR', key .. ':seq'))
     redis.call('ZADD', key, now, member)
-
     redis.call('PEXPIRE', key, window_ms)
+    redis.call('PEXPIRE', key .. ':seq', window_ms)
 
     return 1
 else

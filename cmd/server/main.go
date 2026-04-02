@@ -51,8 +51,12 @@ func main() {
 	}()
 
 	httpSrv := &http.Server{
-		Addr:    cfg.HTTPAddr,
-		Handler: httpserver.NewRouter(lim),
+		Addr:           cfg.HTTPAddr,
+		Handler:        httpserver.NewRouter(lim),
+		ReadTimeout:    2 * time.Second,
+		WriteTimeout:   2 * time.Second,
+		IdleTimeout:    30 * time.Second,
+		MaxHeaderBytes: 1 << 20,
 	}
 	go func() {
 		log.Printf("HTTP listening on %s", cfg.HTTPAddr)

@@ -14,7 +14,7 @@ type RedisStore struct {
 }
 
 func NewRedisStore(addr string) (*RedisStore, error) {
-	client := redis.NewClient(&redis.Options{Addr: addr})
+	client := redis.NewClient(&redis.Options{Addr: addr, PoolSize: 1000, MinIdleConns: 300})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

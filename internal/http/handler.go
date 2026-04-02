@@ -4,8 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	stdhttp "net/http"
-
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"time"
 )
 
 type Limiter interface {
@@ -14,8 +13,45 @@ type Limiter interface {
 
 func NewRouter(lim Limiter) stdhttp.Handler {
 	mux := stdhttp.NewServeMux()
-	mux.HandleFunc("/check", checkHandler(lim))
-	mux.Handle("/metrics", promhttp.Handler())
+	sem := make(chan struct{}, 1000) // Limit to 1000 concurrent requests
+
+	mux.HandleFunc("/check", func(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+		select {
+		case sem <- struct{}{}:
+			defer func() { <-sem }()
+		default:
+			stdhttp.Error(w, "server overloaded", stdhttp.StatusServiceUnavailable)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), 50*time.Millisecond)
+		defer cancel()
+
+		// ✅ Read from header, matching what k6 sends
+		apiKey := r.Header.Get("X-API-Key")
+		if apiKey == "" {
+			stdhttp.Error(w, "Missing X-API-Key", stdhttp.StatusBadRequest)
+			return
+		}
+
+		allowed, err := lim.AllowRequest(ctx, apiKey)
+		if err != nil {
+			stdhttp.Error(w, err.Error(), stdhttp.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if allowed {
+			w.WriteHeader(stdhttp.StatusOK)
+		} else {
+			w.WriteHeader(stdhttp.StatusTooManyRequests)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"allowed": allowed,
+			"api_key": apiKey,
+		})
+	})
+
 	return mux
 }
 
