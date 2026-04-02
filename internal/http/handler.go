@@ -6,6 +6,7 @@ import (
 	stdhttp "net/http"
 	"time"
 
+	"github.com/Pavan-Rana/rate-limiter/internal/metrics"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -18,6 +19,7 @@ func NewRouter(lim Limiter) stdhttp.Handler {
 	sem := make(chan struct{}, 1000) // Limit to 1000 concurrent requests
 
 	mux.HandleFunc("/check", func(w stdhttp.ResponseWriter, r *stdhttp.Request) {
+		start := time.Now()
 		select {
 		case sem <- struct{}{}:
 			defer func() { <-sem }()
@@ -37,7 +39,10 @@ func NewRouter(lim Limiter) stdhttp.Handler {
 		}
 
 		allowed, err := lim.AllowRequest(ctx, apiKey)
+		metrics.RecordDecision(apiKey, allowed)
+		metrics.RecordDecisionLatency(time.Since(start))
 		if err != nil {
+			metrics.RecordRedisError()
 			stdhttp.Error(w, err.Error(), stdhttp.StatusInternalServerError)
 			return
 		}

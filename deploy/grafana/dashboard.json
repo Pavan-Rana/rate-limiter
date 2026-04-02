@@ -1,1 +1,100 @@
-// deploy/grafana/dashboard.json
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" }
+  ],
+  "annotations": { "list": [] },
+  "description": "Rate Limiter — decision throughput, latency, Redis health",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "panels": [
+    {
+      "title": "Request rate (allowed vs rejected)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(ratelimiter_requests_total{status=\"allowed\"}[1m]))",
+          "legendFormat": "allowed"
+        },
+        {
+          "expr": "sum(rate(ratelimiter_requests_total{status=\"rejected\"}[1m]))",
+          "legendFormat": "rejected"
+        }
+      ]
+    },
+    {
+      "title": "Decision latency — p50 / p95 / p99",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(ratelimiter_decision_latency_seconds_bucket[1m])) by (le)) * 1000",
+          "legendFormat": "p50 ms"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(ratelimiter_decision_latency_seconds_bucket[1m])) by (le)) * 1000",
+          "legendFormat": "p95 ms"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(ratelimiter_decision_latency_seconds_bucket[1m])) by (le)) * 1000",
+          "legendFormat": "p99 ms"
+        }
+      ]
+    },
+    {
+      "title": "Redis command latency — p99",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(ratelimiter_redis_command_duration_seconds_bucket[1m])) by (le)) * 1000",
+          "legendFormat": "Redis p99 ms"
+        }
+      ]
+    },
+    {
+      "title": "Redis errors",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(increase(ratelimiter_redis_errors_total[5m]))",
+          "legendFormat": "errors (5m)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Rejection rate %",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(ratelimiter_requests_total{status=\"rejected\"}[1m])) / sum(rate(ratelimiter_requests_total[1m])) * 100",
+          "legendFormat": "rejection %"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 38,
+  "tags": ["rate-limiter", "distributed-systems"],
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "title": "Rate Limiter",
+  "uid": "rate-limiter-main",
+  "version": 1
+}
